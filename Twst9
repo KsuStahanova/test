@@ -1,0 +1,49 @@
+import pytest
+import httpx
+import asyncio
+from app import app  # Предполагается, что ваше веб-приложение находится в модуле app
+
+@pytest.fixture
+async def client():
+    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        yield client
+
+@pytest.mark.asyncio
+async def test_registration(client):
+    # Отправка запроса на регистрацию
+    user_data = {
+        "username": "testuser",
+        "email": "testuser@example.com",
+        "password": "password123"
+    }
+    response = await client.post("/register", json=user_data)
+    assert response.status_code == 200
+    assert response.json()["message"] == "User registered successfully"
+
+@pytest.mark.asyncio
+async def test_login(client):
+    # Авторизация зарегистрированным пользователем
+    login_data = {
+        "username": "testuser",
+        "password": "password123"
+    }
+    response = await client.post("/login", data=login_data)
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+
+@pytest.mark.asyncio
+async def test_view_profile(client):
+    # Просмотр профиля авторизованного пользователя
+    response = await client.get("/profile")
+    assert response.status_code == 200
+    assert "username" in response.json()
+
+@pytest.mark.asyncio
+async def test_edit_profile(client):
+    # Редактирование профиля авторизованного пользователя
+    updated_profile_data = {
+        "email": "newemail@example.com"
+    }
+    response = await client.put("/profile", json=updated_profile_data)
+    assert response.status_code == 200
+    assert response.json()["message"] == "Profile updated successfully"
